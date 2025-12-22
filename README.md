@@ -42,6 +42,11 @@ The Epoch Clock provides a decentralised, post-quantum-secured temporal authorit
 
 This allows systems to enforce replay boundaries, expiry windows, policy timing rules, and multi-device consistency using verifiable, cryptographically authenticated time.
 
+### **Authority Model Clarification (Normative)**
+
+Epoch Clock does not enforce time at the Bitcoin consensus or Script level. Instead, it provides a cryptographically verifiable temporal reference that is consumed by wallets, signers, and custody systems. All enforcement occurs through refusal semantics: a wallet or signer MUST refuse to authorise operations when EpochTick validation fails. No Bitcoin Script opcode, miner behaviour, or mempool property is relied upon for enforcement.
+
+
 ## **1.2 Scope**
 
 This specification defines:
@@ -66,60 +71,62 @@ This specification does **not** define:
 
 External attestation systems such as PQVL may satisfy runtime-validity predicates, but Epoch Clock validation does not depend on them.
 
-## 1.2A Canonical Profile Reference (NORMATIVE)
+## **1.2A Canonical Profile Reference (NORMATIVE)**
 
 The canonical Epoch Clock v2.0 profile used by all PQSF, PQHD, PQVL, and PQAI systems is:
 
+```
+
 profile_ref = "ordinal:439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0"
+
+```
 
 All compliant implementations MUST validate this inscription directly and MUST reject any EpochTick whose `profile_ref` does not match this value. Profile lineage, mirror reconciliation, rotation behaviour, and freshness rules MUST all be evaluated using this canonical profile as the authoritative parent.
 
----
-
-# **WHAT THIS SPECIFICATION COVERS**
-
-This specification normatively defines:
-
-1. **Temporal Authority**
-   The canonical profile, Bitcoin anchoring model, lineage rules, and emergency-rotation semantics.
-
-2. **EpochTick Semantics**
-   ML-DSA-65 signatures, SHAKE256 hashing, canonical encoding, freshness, monotonicity, and profile_ref binding.
-
-3. **Mirror and Reconciliation Model**
-   Deterministic validation rules, cross-mirror consistency, divergence handling, and fail-closed behaviour.
-
-4. **Canonical Encoding**
-   JCS JSON and deterministic CBOR formats required for all signed or hashed objects.
-
-5. **Offline, Stealth, and Sovereign Operation**
-   Strict tick-reuse windows, freeze rules, reconciliation requirements, and partition-tolerant behaviour.
-
-6. **Integration Semantics**
-   How dependent systems interpret EpochTicks for consent windows, policy timing, runtime-integrity timestamping, AI-alignment freshness, and session boundaries.
-
-7. **Security, Privacy, and Sovereignty Guarantees**
-   Metadata minimisation, centralisation-avoidance, and full local verifiability using only deterministic validation rules.
-
-Optional annexes provide examples and extended workflows without modifying the normative core.
+The authority of an Epoch Clock profile derives solely from its canonical inscription reference and validated lineage. Authority does not derive from network position, mirror identity, or runtime environment.
 
 ---
 
-1.1A Trustless Temporal Authority (INFORMATIVE)
+## **1.2B Trustless Temporal Authority (INFORMATIVE)**
 
-The Epoch Clock is designed so that time validation never depends on central servers, cloud infrastructure, DNS, or NTP. All security properties derive from Bitcoin-inscribed profiles, ML-DSA-65 signatures, canonical encoding, and mirror consensus. Users may verify, fork, or self-host mirror infrastructure without coordination or permission from any operator.
+The Epoch Clock is designed so that time validation never depends on central servers, cloud infrastructure, DNS, or NTP. All security properties derive from Bitcoin-inscribed profiles, ML-DSA-65 signatures, canonical encoding, and mirror consensus.
 
-The canonical Epoch Clock v2.0 profile is inscribed at:
-
-profile_ref = "ordinal:439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0"
+Users may verify, fork, mirror, or self-host Epoch Clock infrastructure without coordination or permission from any operator. Explorer services are provided for convenience only and are never authoritative; clients MUST validate the canonical profile using the on-chain inscription referenced by `profile_ref`.
 
 (Informative) Public explorers for convenience only:
 
-https://ordinals.com/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
-https://bestinslot.xyz/ordinals/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+https://ordinals.com/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0  
+https://bestinslot.xyz/ordinals/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0  
 https://www.ord.io/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
 
-Explorer URLs are non-authoritative. Clients MUST validate the canonical profile using the on-chain inscription referenced by profile_ref.
+---
+
+## **1.2C What This Specification Covers (INFORMATIVE)**
+
+The following areas are defined normatively by this document:
+
+1. **Temporal Authority**  
+   The canonical profile, Bitcoin anchoring model, lineage rules, and emergency-rotation semantics.
+
+2. **EpochTick Semantics**  
+   ML-DSA-65 signatures, SHAKE256 hashing, canonical encoding, freshness, monotonicity, and `profile_ref` binding.
+
+3. **Mirror and Reconciliation Model**  
+   Deterministic validation rules, cross-mirror consistency, divergence handling, and fail-closed behaviour.
+
+4. **Canonical Encoding**  
+   JCS JSON and deterministic CBOR formats required for all signed or hashed objects.
+
+5. **Offline, Stealth, and Sovereign Operation**  
+   Strict tick-reuse windows, freeze rules, reconciliation requirements, and partition-tolerant behaviour.
+
+6. **Integration Semantics**  
+   How dependent systems interpret EpochTicks for consent windows, policy timing, runtime-integrity timestamping, AI-alignment freshness, and session boundaries.
+
+7. **Security, Privacy, and Sovereignty Guarantees**  
+   Metadata minimisation, centralisation-avoidance, and full local verifiability using only deterministic validation rules.
+
+Optional annexes provide examples and extended workflows without modifying the normative core.
 
 ---
 
@@ -135,16 +142,57 @@ PQSF depends on the Epoch Clock for deterministic, post-quantum-signed time. Spe
 
 The Epoch Clock does not depend on PQSF. PQSF depends on the Epoch Clock to provide deterministic, sovereign, verifiable time for all temporal predicates.
 
+## **1.4 Relationship to PQHD (Normative)**
+
+PQHD consumes EpochTicks as its sole temporal authority for custody predicates and refusal semantics.
+
+PQHD implementations MUST:
+
+* validate EpochTicks according to this specification before evaluating any custody predicate;
+* fail closed if EpochTick validation fails, is stale, or mirror consensus cannot be established;
+* treat Epoch Clock as a read-only authority source and MUST NOT assume any Bitcoin Script-level enforcement.
+
+Epoch Clock does not depend on PQHD. PQHD depends on Epoch Clock for deterministic, sovereign, verifiable time.
+
+## **1.4A Authority Anchor Pattern (Normative–Informative)**
+
+Epoch Clock follows a general pattern in which an Ordinal inscription is used as an immutable public reference anchor for an authority domain, while all enforcement occurs off-chain through signer and wallet policy.
+
+In this pattern:
+
+* the inscription defines authoritative parameters (for example, time profiles, lineage rules, or validity constraints);
+* the inscription is never read by Bitcoin Script;
+* wallets and signers validate the inscription and its lineage independently;
+* refusal to sign is the sole enforcement mechanism.
+
+This pattern is intentionally general and may be reused by other authority domains (for example governance, execution policy, recovery semantics, or threat-model declarations) without modifying Bitcoin consensus or Script.
+
+## **1.4B Consuming Protocols (Normative)**
+
+Epoch Clock is designed to be consumed by external protocols and wallet systems that require a verifiable temporal reference.
+
+Examples include:
+
+* PQHD, which consumes EpochTicks as its sole temporal authority for custody predicates;
+* EPOCH Protocol, which binds execution-time commitments to wallet-validated epoch values;
+* other authority systems that require monotonic, replay-resistant time for policy enforcement.
+
+Epoch Clock does not depend on any consuming protocol. All consuming protocols MUST treat Epoch Clock as a read-only authority source and MUST NOT assume any Script-level enforcement.
+
 ## **1.5 Non-Goals**
 
 The Epoch Clock does **not** aim to:
 
-* replace Bitcoin consensus or timestamps
-* serve as an oracle or data feed
-* provide subjective time or timezone information
-* manage private keys or custody models
-* define wallet-level policy
-* define application-level semantics
+* replace Bitcoin consensus or timestamps;
+* serve as an oracle or data feed;
+* inject time into Bitcoin Script, miner decision-making, or consensus;
+* provide subjective time or timezone information;
+* manage private keys or custody models;
+* define wallet-level policy;
+* define application-level semantics.
+
+Epoch Clock MUST NOT be interpreted as an oracle. Any system that treats Epoch Clock as an on-chain oracle is non-conformant.
+
 
 ## **1.6 Deployment Environments**
 
@@ -646,12 +694,12 @@ In Stealth Mode:
 
 ---
 
-## **4.4.5 Mirror Discovery (NORMATIVE)**
+## **4.5 Mirror Discovery (NORMATIVE)**
 
 Clients MUST implement at least one supported method for discovering Epoch Clock mirrors.
 Implementations MAY support multiple mechanisms simultaneously to increase resilience.
 
-### **4.4.5.1 Static Mirror List (Required for MVP)**
+### **4.5.1 Static Mirror List (Required for MVP)**
 
 A client MAY embed a list of mirrors, for example:
 
@@ -669,7 +717,7 @@ Requirements:
 * Client MUST query ≥2 mirrors for every tick request.
 * Responses MUST be validated under §4.3 and §5.
 
-### **4.4.5.2 Profile-Embedded Mirror List (Recommended)**
+### **4.5.2 Profile-Embedded Mirror List (Recommended)**
 
 Future profile versions MAY include:
 
@@ -682,7 +730,7 @@ If present:
 * Clients MUST validate mirror URLs.
 * Clients MAY use embedded mirrors but MUST NOT trust them exclusively.
 
-### **4.4.5.3 DNS-Based Discovery (Optional)**
+### **4.5.3 DNS-Based Discovery (Optional)**
 
 Clients MAY use DNS records such as:
 
@@ -696,18 +744,18 @@ DNS results MUST be ignored if:
 * domain does not match `profile_ref`
 * mirror list diverges from majority consensus
 
-### **4.4.5.4 Local / Enterprise Discovery (Optional)**
+### **4.5.4 Local / Enterprise Discovery (Optional)**
 
 STP broadcast or enterprise configuration MAY be used.
 All discovered mirrors MUST adhere to the same validation rules as publicly listed mirrors.
 
 ---
 
-## **4.4.6 Mirror API (NORMATIVE)**
+## **4.6 Mirror API (NORMATIVE)**
 
 Mirrors MUST expose at least one deterministic, canonical API for profile and tick retrieval.
 
-### **4.4.6.1 HTTPS GET Endpoint (Required)**
+### **4.6.1 HTTPS GET Endpoint (Required)**
 
 **Endpoint:**
 
@@ -737,7 +785,7 @@ Clients MUST validate:
 * `sig_mirror` against known mirror identity
 * timestamp freshness
 
-### **4.4.6.2 Profile Fetch**
+### **4.6.2 Profile Fetch**
 
 ```
 GET /profile
@@ -745,7 +793,7 @@ GET /profile
 
 Returns the canonical Epoch Clock Profile JSON (JCS).
 
-### **4.4.6.3 STP Endpoint (Optional, INFORMATIVE)**
+### **4.6.3 STP Endpoint (Optional, INFORMATIVE)**
 
 Mirrors MAY implement an STP (“Sovereign Transport Protocol”) endpoint for environments where DNS, public CA infrastructure, or traditional HTTPS are not available or not desired.
 
@@ -755,14 +803,14 @@ Mirrors MAY implement an STP (“Sovereign Transport Protocol”) endpoint for e
 
 This specification does not redefine STP itself; it only states how EpochTicks and profiles are transported over an STP channel.
 
-### **4.4.6.4 Mirror Error Codes**
+### **4.6.4 Mirror Error Codes**
 
 * `E_MIRROR_UNAVAILABLE`
 * `E_MIRROR_DIVERGENCE`
 * `E_PROFILE_MISMATCH`
 * `E_TICK_INVALID`
 
-### **4.4.6.5 Rate-Limiting (Informative)**
+### **4.6.5 Rate-Limiting (Informative)**
 
 Mirrors SHOULD implement basic rate-limiting but MUST NOT introduce non-determinism or personalized responses.
 
@@ -770,10 +818,10 @@ Numeric rate limits (e.g., requests-per-second thresholds) are deployment-specif
 
 ---
 
-4.4.6.6 Example Mirror Implementation Snippets (INFORMATIVE)
+4.6.6 Example Mirror Implementation Snippets (INFORMATIVE)
 The following examples provide non-normative reference patterns for implementing Epoch Clock mirror endpoints. Mirrors MAY use any framework or language, provided all responses remain deterministic and comply with canonical encoding rules.
 
-4.4.6.6.1 Minimal /tick Endpoint (Illustrative)
+4.6.6.1 Minimal /tick Endpoint (Illustrative)
 def get_tick():
     tick = fetch_latest_verified_tick()
     canonical_tick = canonical_encode({
@@ -789,7 +837,7 @@ def get_tick():
     }
     return canonical_encode(response)
 
-4.4.6.6.2 Minimal /profile Endpoint (Illustrative)
+4.6.6.2 Minimal /profile Endpoint (Illustrative)
 def get_profile():
     profile_bytes = load_canonical_profile()
     response = {
@@ -799,7 +847,7 @@ def get_profile():
     }
     return canonical_encode(response)
 
-4.4.6.6.3 Illustrative Tick Reconciliation Logic
+4.6.6.3 Illustrative Tick Reconciliation Logic
 def reconcile_tick_sources():
     local_tick = fetch_local_tick()
     peer_ticks = fetch_peer_mirror_ticks()
@@ -808,15 +856,15 @@ def reconcile_tick_sources():
     selected = max(valid, key=lambda x: x["t"])
     return selected
 
-4.4.6.6.4 Example Canonical Encoder Wrapper
+4.6.6.4 Example Canonical Encoder Wrapper
 def canonical_encode(obj):
     return jcs_canonical_json_dumps(obj)
 
-## **4.4.7 Mirror Identity and Trust Model (NORMATIVE)**
+## **4.7 Mirror Identity and Trust Model (NORMATIVE)**
 
 Mirrors MUST authenticate their responses using a long-term public key, and clients MUST verify `sig_mirror` before trusting any tick or profile data.
 
-### **4.4.7.1 Mirror Public Keys**
+### **4.7.1 Mirror Public Keys**
 
 Each mirror MUST have a stable public key (`mirror_pubkey`) used solely for signing API responses.
 
@@ -831,7 +879,7 @@ The mechanism for provisioning `mirror_pubkey` values is deployment-specific and
 - Clients MUST treat any change of `mirror_pubkey` as a security-relevant event.
 - Implementations SHOULD support pinning mirror keys to prevent downgrade or substitution attacks.
 
-### **4.4.7.2 Validating `sig_mirror`**
+### **4.7.2 Validating `sig_mirror`**
 
 For any response containing `sig_mirror`:
 
@@ -842,7 +890,7 @@ For any response containing `sig_mirror`:
    - The client MUST raise `E_SIG_INVALID` or `E_MIRROR_UNAVAILABLE`.
    - The client SHOULD query an alternate mirror as per §4.5.1.
 
-### **4.4.7.3 Mirror Trust Policy**
+### **4.7.3 Mirror Trust Policy**
 
 The policy for selecting which mirrors to trust (and how many) is deployment-specific and out of scope.
 
@@ -853,7 +901,7 @@ However:
 
 ---
 
-## **4.5 Error Handling & Failure Codes**
+## **4.8 Error Handling & Failure Codes**
 
 The Epoch Clock MUST produce or propagate:
 
@@ -874,7 +922,36 @@ All consuming systems MUST treat these as **FAIL_CLOSED**.
 
 ---
 
-## **4.6 Transport Binding & Session Rules (PQSF Integration)**
+
+## **4.9 Error Recovery Procedures (NORMATIVE)**
+
+Clients encountering errors MUST follow one of the mandatory recovery flows below.
+
+### **4.9.1 Mirror Divergence**
+
+* Query at least one additional mirror.
+* If divergence persists → raise `E_MIRROR_DIVERGENCE` → FAIL_CLOSED.
+* Retry only after `retry_interval_seconds` (implementation-defined).
+
+### **4.9.2 Tick Expiry**
+
+* Attempt to retrieve a fresh tick.
+* If unavailable → freeze all time-dependent operations.
+* If Stealth Mode is active, refresh MUST wait until exit conditions in §8.2 are met.
+
+### **4.9.3 Profile Mismatch**
+
+* Fetch the inscribed profile referenced by `profile_ref`.
+* Validate canonical encoding, `hash_pq`, and `sig_pq`.
+* If mismatch persists → FAIL_CLOSED.
+
+### **4.9.4 Canonical Encoding Error**
+
+* Reject the tick.
+* Retry using an alternate mirror.
+* Log the failure in the dependent system’s ledger (PQHD / PQSF / PQVL).
+
+## **4.10 Transport Binding & Session Rules (PQSF Integration)**
 
 EpochTicks MUST bind to PQSF transport requirements:
 
@@ -884,37 +961,7 @@ EpochTicks MUST bind to PQSF transport requirements:
 * included in TLSE-EMP transcripts
 * included in STP offline messages
 * used for session boundary enforcement
-
----
-
-## **4.5.1 Error Recovery Procedures (NORMATIVE)**
-
-Clients encountering errors MUST follow one of the mandatory recovery flows below.
-
-### **4.5.1.1 Mirror Divergence**
-
-* Query at least one additional mirror.
-* If divergence persists → raise `E_MIRROR_DIVERGENCE` → FAIL_CLOSED.
-* Retry only after `retry_interval_seconds` (implementation-defined).
-
-### **4.5.1.2 Tick Expiry**
-
-* Attempt to retrieve a fresh tick.
-* If unavailable → freeze all time-dependent operations.
-* If Stealth Mode is active, refresh MUST wait until exit conditions in §8.2 are met.
-
-### **4.5.1.3 Profile Mismatch**
-
-* Fetch the inscribed profile referenced by `profile_ref`.
-* Validate canonical encoding, `hash_pq`, and `sig_pq`.
-* If mismatch persists → FAIL_CLOSED.
-
-### **4.5.1.4 Canonical Encoding Error**
-
-* Reject the tick.
-* Retry using an alternate mirror.
-* Log the failure in the dependent system’s ledger (PQHD / PQSF / PQVL).
-
+  
 ---
 
 # **5. TIME / CLOCK / PROFILE INTEGRATION (NORMATIVE)**
@@ -1066,22 +1113,26 @@ If the client cannot successfully validate the profile via embedded, on-chain, o
 
 * The Epoch Clock MUST remain uninitialized.
 * All dependent PQSF, PQHD, PQVL, and PQAI time-bound operations MUST fail closed.
-* Clients MUST NOT attempt to construct synthetic replacement profiles or fallback to system time.  6. Profile Governance & Rotation (NORMATIVE)
-6.1 Rotation Authority
+* Clients MUST NOT attempt to construct synthetic replacement profiles or fallback to system time.  
+
+# **6. PROFILE GOVERNANCE & ROTATION (NORMATIVE)**
+## **6.1 Rotation Authority**
 The emergency_quorum field of the active Epoch Clock Profile defines the governance keys authorised to approve a new child profile.
 A child profile inscription MUST include ML-DSA-65 signatures from a quorum of these governance keys.
 Unless otherwise explicitly defined in the parent profile, the quorum threshold MUST be:
 M = ceil(N / 2)
 where N is the number of keys listed in emergency_quorum.
 Clients MUST reject any child profile whose quorum signatures are missing, invalid, or insufficient to meet the threshold.
-6.2 Rotation Triggers
+
+## **6.2 Rotation Triggers**
 A child profile MUST be issued when any of the following conditions occur:
 * suspected or confirmed compromise of the profile signing key
 * cryptographic downgrade or break affecting ML-DSA-65 or the classical alt key
 * nearing expiry according to rotation_schedule_seconds
 * hash function compromise affecting hash_pq
 * governance-approved emergency conditions that require immediate profile rotation
-6.3 Child Profile Requirements
+
+## **6.3 Child Profile Requirements**
 A valid child profile MUST:
 * include parent_profile_ref referencing the currently active profile
 * follow all canonical encoding requirements in §3.6
@@ -1090,7 +1141,8 @@ A valid child profile MUST:
 * preserve the "epoch-clock" p field
 * be inscribed as an independent Bitcoin Ordinal
 Profiles that fail any of these requirements MUST be rejected.
-6.4 Client Validation Rules
+
+## **6.4 Client Validation Rules**
 When a client encounters a candidate child profile, it MUST:
 1. Fetch the profile from the ordinal inscription.
 2. Validate canonical encoding.
@@ -1100,7 +1152,8 @@ When a client encounters a candidate child profile, it MUST:
 6. Validate parent_profile_ref lineage.
 7. Validate that the profile satisfies all constraints defined in this specification.
 If ANY validation step fails, the child profile MUST be rejected and the system MUST FAIL_CLOSED.
-6.5 Promotion Rules
+
+## **6.5 Promotion Rules**
 Once a child profile is fully validated:
 * The client MUST promote it to the active profile.
 * The pinned profile MUST update to the child profile.
@@ -1109,7 +1162,8 @@ Once a child profile is fully validated:
 * A profile_rotation ledger event MUST be recorded.
 * All future ticks MUST reference the new profile_ref.
 No system MAY use ticks from a superseded profile beyond the normal reuse window.
-6.6 Mirror Rotation Behaviour
+
+## **6.6 Mirror Rotation Behaviour**
 Mirrors MUST:
 * detect new child-profile inscriptions,
 * validate lineage, signatures, and hash_pq,
@@ -1117,7 +1171,8 @@ Mirrors MUST:
 * begin serving ticks under the new profile only after full validation,
 * broadcast a deterministic rotation event.
 If mirrors disagree on profile promotion, clients MUST treat this as mirror divergence and FAIL_CLOSED until consensus is restored.
-6.7 Emergency Rotation
+
+## **6.7 Emergency Rotation**
 Under emergency-governance conditions:
 
 * classical signatures MUST be ignored where they conflict with PQ signatures,
@@ -1129,8 +1184,9 @@ Under emergency-governance conditions:
 EmergencyTicks MUST obey all normal tick-validation rules except those explicitly bypassed under emergency governance authority as defined in this section.
 
 
-7. CONSENT AND POLICY ENFORCEMENT (NORMATIVE)
+# **7. CONSENT AND POLICY ENFORCEMENT (NORMATIVE)**
 (To the extent the Epoch Clock participates in Consent/Policy through PQSF/PQHD.)
+
 7.1 ConsentProof Structure
 ConsentProof depends on EpochTicks for:
 * tick_issued
@@ -1139,6 +1195,7 @@ ConsentProof depends on EpochTicks for:
 * multisig participant enforcement
 * replay protection
 Epoch Clock provides the time boundary for ConsentProof validation.
+
 7.2 Consent Validation
 Consent MUST be rejected if:
 * tick stale
@@ -1146,6 +1203,7 @@ Consent MUST be rejected if:
 * mismatch between tick profile_ref and system profile
 * tick canonical encoding invalid
 * mirror divergence detected
+
 7.3 Policy Enforcement (Policy Enforcer Integration)
 PQHD Policy Enforcer requires:
 valid_for_signing =
@@ -1156,20 +1214,24 @@ valid_for_signing =
     AND valid_policy
     AND valid_ledger
 Epoch Clock provides valid_tick.
+
 7.4 Role & Quorum Enforcement (Indirect)
 Although the Epoch Clock does not define roles, its ticks are required inputs for:
 * quorum windows
 * delay windows
 * anomaly detection intervals
+
 7.5 Out-of-Band Requirements
 OOB flows (push confirm, secure UI, guardian confirmation) MUST:
 * verify tick freshness
 * reject expired tick windows
 * record tick in ledger
+
 7.6 Allowlist / Denylist Rules
 Not applicable to the Epoch Clock directly; however, PQHD policies derived from it use tick windows for:
 * destination approval lifetime
 * anomaly scoring windows
+
 7.7 Predicate Summary
 The Epoch Clock enforces:
 valid_tick = (
@@ -1179,6 +1241,7 @@ valid_tick = (
     AND monotonic
     AND mirror_consensus
 )
+
 7.8 Consent & Policy Failure Modes
 The Epoch Clock contributes:
 * E_TICK_EXPIRED
@@ -1188,7 +1251,7 @@ The Epoch Clock contributes:
 * E_HASH_MISMATCH
 All downstream systems MUST interpret these as immediate fail-closed.
 
-8. LEDGER AND AUDIT (NORMATIVE)
+# **8. LEDGER AND AUDIT (NORMATIVE)**
 
 The Epoch Clock does not maintain its own ledger; this section defines the rules for how dependent systems MUST record tick usage.
 
@@ -1317,7 +1380,7 @@ Resume only after:
 * ledger reconciliation
 
 
-9. OPERATIONAL RULES (NORMATIVE)
+# **9. OPERATIONAL RULES (NORMATIVE)**
 
 9.1 Offline Mode
 Offline clients rely on:

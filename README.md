@@ -1,17 +1,26 @@
 # **Epoch Clock**
 An Open Standard for Verifiable, Decentralized Time
 
-**Specification Version:** v2.0.0
-**Status:** Implementation Ready. Mechanically Proven.
-**Author:** rosiea
-**Contact:** [PQRosie@proton.me](mailto:PQRosie@proton.me)
-**Date:** November 2025
-**Licence:** Apache License 2.0 — Copyright 2025 rosiea
+- **Version**: 2.0.0
+- **Maturity**: IMPLEMENTATION READY
+- **Status**: STABLE
+- **Canonical Profile**: `ordinal:439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0`
+- **Last Review**: January 2026
+
+This version is production-ready and consumed by:
+- PQHD 1.1.0+
+- PQSEC 2.0.1+
+- PQEH 2.1.1+
+- PQVL 1.0.3+
+- PQAI 1.1.1+
+
+Future revisions are expected only in response to cryptographic,
+consensus, or ecosystem-level requirements.
 
 
 # **ABSTRACT**
 
-The Epoch Clock defines a deterministic, decentralised, cryptographically signed time authority designed for systems that require verifiable, replay-resistant, and sovereignty-preserving temporal semantics. It provides ML-DSA-65–signed EpochTicks anchored to a canonical Bitcoin inscription, allowing clients to validate time without relying on system clocks, NTP, DNS, cloud services, or centralised providers. All profile and tick objects use canonical JSON or deterministic CBOR to ensure cross-implementation consistency.
+The Epoch Clock defines a deterministic, decentralised, cryptographically signed time authority designed for systems that require verifiable, replay-resistant, and sovereignty-preserving temporal semantics. It provides ML-DSA-65–signed EpochTicks anchored to a canonical Bitcoin inscription, allowing clients to validate time without relying on system clocks, NTP, DNS, cloud services, or centralised providers. All profile and tick objects use JCS Canonical JSON to ensure cross-implementation consistency.
 
 EpochTicks integrate with PQSF and dependent specifications by supplying a verifiable temporal reference for consent windows, policy enforcement, transport binding, replay prevention, and session boundaries. The Epoch Clock also defines deterministic profile-lineage rules, mirror-reconciliation behaviour, offline constraints, and Stealth Mode operation. Runtime-integrity systems such as PQVL may contribute additional validity signals, but the Epoch Clock remains independently verifiable using only on-chain profile data and deterministic mirror rules.
 
@@ -59,15 +68,19 @@ This specification defines:
 * offline, Stealth Mode, and air-gapped operation
 * integration boundaries with PQSF, PQHD, PQVL, and PQAI
 * security, privacy, and sovereignty requirements
-* deterministic client-side enforcement rules
+
+**Epoch Clock produces signed time artefacts only.**
 
 This specification does **not** define:
 
 * Bitcoin consensus or transaction formats
+* consumer-side enforcement semantics (freshness, monotonicity, acceptance, refusal)
 * application-level timing semantics or business logic
 * wallet custody rules (PQHD)
 * runtime-integrity measurement (PQVL)
 * AI alignment or drift analysis (PQAI)
+
+All consumer-side validation logic, freshness enforcement, refusal semantics, freeze semantics, and enforcement behaviour are defined exclusively by PQSEC and consuming specifications.
 
 External attestation systems such as PQVL may satisfy runtime-validity predicates, but Epoch Clock validation does not depend on them.
 
@@ -76,9 +89,7 @@ External attestation systems such as PQVL may satisfy runtime-validity predicate
 The canonical Epoch Clock v2.0 profile used by all PQSF, PQHD, PQVL, and PQAI systems is:
 
 ```
-
 profile_ref = "ordinal:439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0"
-
 ```
 
 All compliant implementations MUST validate this inscription directly and MUST reject any EpochTick whose `profile_ref` does not match this value. Profile lineage, mirror reconciliation, rotation behaviour, and freshness rules MUST all be evaluated using this canonical profile as the authoritative parent.
@@ -87,17 +98,17 @@ The authority of an Epoch Clock profile derives solely from its canonical inscri
 
 ---
 
-## **1.2B Trustless Temporal Authority (INFORMATIVE)**
+## **1.2B Trustless Temporal Authority (NORMATIVE)**
 
 The Epoch Clock is designed so that time validation never depends on central servers, cloud infrastructure, DNS, or NTP. All security properties derive from Bitcoin-inscribed profiles, ML-DSA-65 signatures, canonical encoding, and mirror consensus.
 
 Users may verify, fork, mirror, or self-host Epoch Clock infrastructure without coordination or permission from any operator. Explorer services are provided for convenience only and are never authoritative; clients MUST validate the canonical profile using the on-chain inscription referenced by `profile_ref`.
 
-(Informative) Public explorers for convenience only:
+**(Informative) Public explorers for convenience only:**
 
-https://ordinals.com/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0  
-https://bestinslot.xyz/ordinals/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0  
-https://www.ord.io/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+- https://ordinals.com/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+- https://bestinslot.xyz/ordinals/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+- https://www.ord.io/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
 
 ---
 
@@ -115,7 +126,7 @@ The following areas are defined normatively by this document:
    Deterministic validation rules, cross-mirror consistency, divergence handling, and fail-closed behaviour.
 
 4. **Canonical Encoding**  
-   JCS JSON and deterministic CBOR formats required for all signed or hashed objects.
+   JCS Canonical JSON format required for all Epoch Clock artefacts (profiles and ticks).
 
 5. **Offline, Stealth, and Sovereign Operation**  
    Strict tick-reuse windows, freeze rules, reconciliation requirements, and partition-tolerant behaviour.
@@ -130,17 +141,25 @@ Optional annexes provide examples and extended workflows without modifying the n
 
 ---
 
-## **1.3 Relationship to PQSF**
+## **1.3 Relationship to PQSF and PQSEC**
 
-PQSF depends on the Epoch Clock for deterministic, post-quantum-signed time. Specifically, PQSF MUST consume:
+PQSF and PQSEC depend on the Epoch Clock for deterministic, post-quantum-signed time artefacts.
 
-* **EpochTick** — the authoritative source of freshness, monotonicity, and temporal ordering for all consent, policy, ledger, and runtime predicates (see PQSF 4).
-* **Profile lineage rules** — PQSF MUST validate profile_ref against the active Epoch Clock v2 profile and child-profile lineage (see PQSF 4.2).
-* **Tick freshness** — PQSF MUST enforce tick age and monotonicity exactly as defined in this specification (see PQSF 4.3–4.4).
-* **Canonical encoding** — PQSF MUST use the canonical JSON/CBOR tick format defined by the Epoch Clock (see PQSF 3.5).
-* **Replay and rollback detection** — PQSF MUST treat invalid, stale, or rollback ticks as fail-closed conditions for all dependent operations (see PQSF 4.5).
+**Epoch Clock has no dependencies on PQSF, PQSEC, or other PQ stack specifications.**
 
-The Epoch Clock does not depend on PQSF. PQSF depends on the Epoch Clock to provide deterministic, sovereign, verifiable time for all temporal predicates.
+PQSF and PQSEC consume Epoch Clock artefacts as follows:
+
+* **EpochTick artefacts** — PQSF and PQSEC use EpochTick artefacts as temporal evidence for consent windows, policy enforcement, ledger operations, and runtime predicates (see PQSF §4, PQSEC §3).
+
+* **Profile lineage** — PQSF and PQSEC validate `profile_ref` against the active Epoch Clock v2 profile and child-profile lineage (see PQSF §4.2, PQSEC §5.2.4).
+
+* **Freshness and monotonicity** — PQSEC enforces tick age and monotonicity rules using Epoch Clock artefacts as evidence (see PQSEC §4.3–4.4).
+
+* **Canonical encoding** — PQSF and PQSEC process Epoch Clock artefacts in their canonical JCS JSON format (see PQSF §3.5, PQSEC §3.6).
+
+* **Replay and rollback detection** — PQSEC uses Epoch Clock artefacts to detect invalid, stale, or rollback conditions and enforces fail-closed behaviour for all dependent operations (see PQSEC §4.5).
+
+**Epoch Clock provides temporal artefacts only. All enforcement semantics (freshness windows, monotonicity rules, acceptance/refusal decisions, freeze conditions) are defined by PQSEC and consuming specifications.**
 
 ## **1.4 Relationship to PQHD (Normative)**
 
@@ -216,16 +235,15 @@ The Epoch Clock supports:
 * **Mirror**: A node that fetches, validates, and republishes ticks.
 * **Profile lineage**: Parent–child profile structure across Bitcoin inscriptions.
 * **EmergencyTick**: A tick issued under emergency-governance conditions to support urgent profile rotation or cutover.
-* **Canonical encoding**: JSON (JCS) or deterministic CBOR.
+* **Canonical encoding**: JCS Canonical JSON (RFC 8785) exclusively for Epoch Clock artefacts.
 
 ## **1.8 Compatibility With Existing Standards**
 
 Epoch Clock integrates with:
 
 * Bitcoin Ordinals
-* JCS JSON (RFC 8785)
-* Deterministic CBOR (RFC 8949 §4.2)
-* PQSF transport (hybrid TLS, STP, TLSE-EMP)
+* JCS Canonical JSON (RFC 8785)
+* PQSF transport (hybrid TLS, STP, TLSE-EMP) - note that PQSF may use CBOR for its own transport, but Epoch Clock artefacts remain JCS JSON only
 * ML-DSA-65 and ML-KEM-1024 (NIST draft PQC)
 
 ## 1.9 Backwards Compatibility
@@ -287,8 +305,7 @@ The Epoch Clock comprises:
 
 ## **2.2 Components**
 
-* **Profile**: JSON/CBOR object defining duration, public keys, emergency quorum, etc.
-* **Tick issuer**: Entity producing signed ticks.
+* **Profile**: JCS Canonical JSON object defining duration, public keys, emergency quorum, etc.* **Tick issuer**: Entity producing signed ticks.
 * **Mirrors**: Independent nodes verifying and serving ticks.
 * **Clients**: PQSF-compliant applications using ticks for temporal enforcement.
 
@@ -357,9 +374,12 @@ Epoch Clock depends on:
 
 * ML-DSA-65 (signatures)
 * SHAKE256-256 (hashing)
-* JCS canonical JSON / deterministic CBOR
+* JCS Canonical JSON (RFC 8785)
 * Bitcoin ordinal inscriptions
-* PQSF transport and encoding rules
+
+**Epoch Clock has no dependencies on PQSF, PQSEC, PQHD, PQVL, PQAI, or other PQ stack specifications.**
+
+PQSF, PQSEC, PQHD, PQVL, and PQAI depend on Epoch Clock for temporal artefacts.
 
 ## 2.9 Sovereign Deployment
 
@@ -422,12 +442,17 @@ Domain strings MUST be used for hash and signature context:
 
 ## **3.6 Canonical Encoding Requirements**
 
-Profiles and ticks MUST use:
+**Epoch Clock profiles and ticks MUST be encoded exclusively as JCS Canonical JSON (RFC 8785).**
 
-* JCS JSON (RFC 8785), **or**
-* Deterministic CBOR (RFC 8949 §4.2)
+Requirements:
 
-Encoding MUST be byte-identical across implementations.
+1. All Epoch Clock artefacts (profiles and ticks) MUST use JCS Canonical JSON encoding.
+2. CBOR encoding MUST NOT be used for Epoch Clock artefacts.
+3. Canonical encoding MUST be byte-stable across implementations.
+4. Re-encoding the decoded object MUST produce byte-identical output.
+5. Any re-encoding or alternate representation MUST be rejected.
+
+**Note:** Consuming specifications (PQSF, PQSEC, PQHD) may use deterministic CBOR for their own transport layers, but Epoch Clock artefacts themselves are JCS JSON only.
 
 ---
 
@@ -465,7 +490,7 @@ A client MUST fetch this inscription and validate:
 4. `p == "epoch-clock"`
 5. `origin == "ordinal"`
 
-### **3.6.1.3 Child Profile Inscriptions**
+### **3.6. Child Profile Inscriptions**
 
 Child profiles MUST:
 
@@ -498,7 +523,7 @@ Clients MUST fail closed on:
 
 ### **4.1.1 EpochTick (Authoritative)**
 
-Ticks MUST be encoded in deterministic CBOR or JCS-compliant canonical JSON:
+Ticks MUST be encoded in JCS Canonical JSON only:
 
 ```
 EpochTick = {
@@ -763,7 +788,7 @@ Mirrors MUST expose at least one deterministic, canonical API for profile and ti
 GET /tick
 ```
 
-**Response** (JCS JSON or deterministic CBOR):
+**Response** (JCS Canonical JSON only):
 
 ```json
 {
@@ -798,7 +823,7 @@ Returns the canonical Epoch Clock Profile JSON (JCS).
 Mirrors MAY implement an STP (“Sovereign Transport Protocol”) endpoint for environments where DNS, public CA infrastructure, or traditional HTTPS are not available or not desired.
 
 - The detailed STP handshake, framing, and security properties are specified in the PQSF transport layer (see PQSF STP Annex).
-- When used, STP MUST carry the same canonical `tick` and `profile` objects as defined in §4.1, encoded using deterministic CBOR or JCS JSON.
+- When used, STP MUST carry the same canonical `tick` and `profile` objects as defined in §4.1, encoded using JCS Canonical JSON.
 - All validation rules in §3, §4, and §5 apply identically to ticks and profiles received over STP.
 
 This specification does not redefine STP itself; it only states how EpochTicks and profiles are transported over an STP channel.
@@ -988,14 +1013,17 @@ No additional fields are permitted inside the canonical payload.
 
 ## **5.4 Tick Validation Rules**
 
-A tick is valid if:
+A tick artefact is structurally valid if:
 
 1. ML-DSA-65 signature verifies
 2. profile_ref matches pinned profile
-3. tick freshness ≤ 900 seconds
-4. tick ≥ last_valid_tick
-5. canonical encoding checks pass
-6. ≥2 mirrors agree
+3. canonical JCS JSON encoding validates
+4. all required fields present
+5. ≥2 mirrors agree on identical canonical bytes
+
+**Epoch Clock validates artefact structure only.**
+
+Freshness enforcement (≤ 900 seconds), monotonicity enforcement (t ≥ last_valid_tick), reuse window enforcement, and acceptance/refusal decisions are defined and enforced exclusively by PQSEC and consuming specifications.
 
 ## **5.5 Tick Reuse Rules (Authoritative)**
 
@@ -1462,7 +1490,7 @@ Any drift event MUST include:
 Based on:
 * ML-DSA-65 signatures
 * SHAKE256 canonical hashing
-* deterministic JSON/CBOR
+* JCS Canonical JSON encoding
 * Bitcoin inscription anchoring
 * multi-mirror consensus
 * strict lineage
@@ -1692,8 +1720,7 @@ Rust, Python, Go, JS/WASM are viable reference implementations.
 15.6 Recommended Libraries
 * SHAKE256 (RustCrypto, libsodium, BoringSSL)
 * ML-DSA-65
-* JCS JSON
-* deterministic CBOR
+* JCS Canonical JSON (RFC 8785 implementations)
 15.7 Edge Cases
 * boundary reuse window expiry
 * mirror disagreement
@@ -1742,9 +1769,9 @@ Tick example:
 Full test vector suite under:
 /test-vectors/epoch-clock/
 17.4 Interoperability Requirements
-* MUST accept JCS JSON
+* MUST accept JCS Canonical JSON
 * MUST reject non-canonical JSON
-* MUST support deterministic CBOR
+* MUST NOT accept CBOR for Epoch Clock artefacts
 * MUST agree on hash_pq bit-for-bit
 * mirrors MUST converge under majority
 17.5 Certification Process
@@ -1813,10 +1840,12 @@ The following JSON object is the canonical Epoch Clock v2.0 profile:
 
 Developers should test:
 
-* canonical JSON variations
-* CBOR minimal integer encodings
+* JCS Canonical JSON encoding variations
 * signature verification failures
-
+* hash_pq recomputation accuracy
+* profile lineage validation
+* mirror consensus divergence scenarios
+  
 ---
 
 ## **D. OS-Specific Notes**
@@ -1859,7 +1888,17 @@ Tick forgery is defeated by:
 * mirror consensus
 * profile lineage
 
+# Annexes 
 
+## **Annex A — Canonical Profile Anchor and Inspection Mirrors**
+
+Canonical profile reference:
+ordinal:439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+
+Explorers for human inspection only:
+https://ordinals.com/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+https://bestinslot.xyz/ordinals/inscription/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
+https://www.ord.io/439d7ab1972803dd984bf7d5f05af6d9f369cf52197440e6dda1d9a2ef59b6ebi0
 
 ## **Acknowledgements (Informative)**
 
